@@ -1,0 +1,39 @@
+credentials:
+  usernames:
+    natasha:
+      email: natasha@paperplanes.ru
+      name: Такаева Наташа
+      password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
+    sergey:
+      email: sergey@paperplanes.ru
+      name: Кудовеков Сергей
+      password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
+    khudovekov:
+      email: khudovekov@paper-planes.ru
+      name: Кудовеков Сергей
+      password: $2b$12$l0Y2djvEMkKS52IyG3abFOiiq0ctr29AvzOXNu8JXhZ.MUgRWxdNi  # shikari7
+    georgiy:
+      email: georgiy@paperplanes.ru
+      name: Ротвилишвили Георгий
+      password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
+    dier:
+      email: dier@paperplanes.ru
+      name: Шагазатов Диер
+      password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
+    ilya:
+      email: ilya@paperplanes.ru
+      name: Балахнин Илья
+      password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
+
+cookie:
+  expiry_days: 30
+  key: paperplanes_auth_key_super_secret_change_this
+  name: paperplanes_auth_cookie
+
+preauthorized:
+  emails:
+  - natasha@paperplanes.ru
+  - sergey@paperplanes.ru
+  - georgiy@paperplanes.ru
+  - dier@paperplanes.ru
+  - ilya@paperplanes.ru

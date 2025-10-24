@@ -1,0 +1,43 @@
+# Environment variables
+.env
+
+# Database
+pm_tool.db
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Google Drive credentials (if storing locally)
+google_credentials.json
+credentials.json
+token.pickle
+*.pickle
+
+# Generated files
+generate_passwords.py
+
+# Logs
+*.log
