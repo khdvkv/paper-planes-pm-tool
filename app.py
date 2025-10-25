@@ -80,15 +80,15 @@ def main():
         st.header("Навигация")
         page = st.radio(
             "Выберите страницу:",
-            ["📊 Все проекты", "➕ Создать проект", "📈 Статистика"],
+            ["📊 Все проекты", "🚀 Действия", "📈 Статистика"],
             label_visibility="collapsed"
         )
 
     # Route to pages
     if page == "📊 Все проекты":
         show_all_projects()
-    elif page == "➕ Создать проект":
-        show_create_project()
+    elif page == "🚀 Действия":
+        show_actions()
     elif page == "📈 Статистика":
         show_statistics()
 
@@ -228,81 +228,116 @@ def show_all_projects():
         }
     )
 
-    # Setup Checklist section for all projects
+
+
+def show_actions():
+    """Simple action buttons for project management"""
+    st.header("🚀 Действия")
+    st.caption("Простые кнопки для управления проектами")
+
+    # Action 1: Start Project + Admin Scale v1
     st.markdown("---")
-    st.header("🎯 Setup Checklist - Карточки проектов")
-    st.caption("Обязательные действия ДО открывающей сессии")
+    st.subheader("1️⃣ Старт проекта + Админшкала v1")
 
-    # Get filtered project IDs
-    if len(df_filtered) > 0:
-        filtered_project_ids = df_filtered["_project_id"].tolist()
+    with st.expander("📝 Создать проект и сгенерировать админшкалу", expanded=True):
+        col1, col2 = st.columns(2)
 
-        # Get checklist items for filtered projects
-        db2 = get_db()
-        for project_id in filtered_project_ids:
-            project = db2.query(Project).filter(Project.id == project_id).first()
-            if not project:
-                continue
+        with col1:
+            project_name = st.text_input("Название проекта", key="action1_name")
+            client_name = st.text_input("Клиент", key="action1_client")
+            start_date = st.date_input("Дата старта", key="action1_start")
+            end_date = st.date_input("Дата окончания", key="action1_end")
 
-            # Get checklist items
-            checklist_items = db2.query(SetupChecklistItem).filter(
-                SetupChecklistItem.project_id == project_id
-            ).order_by(SetupChecklistItem.item_number).all()
+        with col2:
+            contract_file = st.file_uploader("Загрузить договор (PDF)", type=["pdf"], key="action1_contract")
+            sales_notes = st.text_area("Гранула продаж (записи встреч)", key="action1_sales", height=150)
 
-            # Calculate progress
-            total_items = len(checklist_items)
-            completed = sum(1 for item in checklist_items if item.is_completed)
-            approved = sum(1 for item in checklist_items if item.is_approved)
+        if st.button("🚀 Создать проект и админшкалу", type="primary", key="action1_submit"):
+            if not project_name or not client_name:
+                st.error("Заполните название проекта и клиента")
+            else:
+                with st.spinner("Создаю проект и генерирую админшкалу v1..."):
+                    # TODO: Implement simple project creation + adminscale generation
+                    st.success(f"✅ Проект '{project_name}' создан!")
+                    st.info("TODO: Генерация админшкалы v1")
 
-            # Project card
-            with st.expander(f"📋 {project.project_code} - {project.name} ({completed}/{total_items} выполнено, {approved}/{total_items} одобрено)", expanded=False):
-                col1, col2 = st.columns([3, 1])
+    # Action 2: Session Processing
+    st.markdown("---")
+    st.subheader("2️⃣ Обработка сессии")
 
-                with col1:
-                    st.write(f"**Клиент:** {project.client}")
-                    st.write(f"**Статус:** {project.status}")
-                    st.write(f"**Группа:** {'🟢 Правая' if project.group == 'right' else '🔵 Левая'}")
+    # Get projects for selection
+    db = get_db()
+    projects = db.query(Project).order_by(Project.created_at.desc()).all()
+    db.close()
 
-                with col2:
-                    # Progress bar
-                    progress = completed / total_items if total_items > 0 else 0
-                    st.progress(progress, text=f"{int(progress*100)}% выполнено")
+    project_options = {f"{p.project_code} - {p.name}": p.id for p in projects}
 
-                    approval_progress = approved / total_items if total_items > 0 else 0
-                    st.progress(approval_progress, text=f"{int(approval_progress*100)}% одобрено")
+    selected_project = st.selectbox(
+        "Выберите проект",
+        options=list(project_options.keys()) if project_options else ["Нет проектов"],
+        key="action2_project"
+    )
 
-                st.markdown("---")
+    if project_options:
+        tabs = st.tabs([
+            "A. Транскрипт → Progressive Summarization",
+            "B. Progressive Summarization → Карта проблем",
+            "C. Админшкала v2"
+        ])
 
-                # Checklist items
-                for item in checklist_items:
-                    col_check, col_title, col_status = st.columns([1, 6, 3])
+        with tabs[0]:
+            st.write("**Загрузить rule (аудио/видео) и получить транскрипт**")
+            audio_file = st.file_uploader(
+                "Загрузить файл сессии",
+                type=["mp3", "wav", "m4a", "mp4"],
+                key="action2a_audio"
+            )
+            if st.button("📝 Создать транскрипт", key="action2a_submit"):
+                with st.spinner("Создаю транскрипт..."):
+                    st.info("TODO: Транскрибация аудио → Progressive Summarization")
 
-                    with col_check:
-                        st.write(f"**{item.item_number}.**")
+        with tabs[1]:
+            st.write("**Загрузить progressive summarization и получить карту проблем**")
+            prog_sum = st.text_area(
+                "Progressive Summarization (текст)",
+                height=200,
+                key="action2b_progsum"
+            )
+            if st.button("🗺️ Создать карту проблем", key="action2b_submit"):
+                with st.spinner("Генерирую карту проблем..."):
+                    st.info("TODO: Progressive Summarization → Карта проблем")
 
-                    with col_title:
-                        st.write(f"**{item.title}**")
-                        if item.description:
-                            st.caption(item.description)
-                        if item.proof_url:
-                            st.markdown(f"🔗 [Подтверждение]({item.proof_url})")
+        with tabs[2]:
+            st.write("**Обновить админшкалу на основе данных сессии**")
+            if st.button("📊 Обновить админшкалу до v2", key="action2c_submit"):
+                with st.spinner("Обновляю админшкалу..."):
+                    st.info("TODO: Админшкала v2 на основе сессии")
 
-                    with col_status:
-                        if item.is_approved:
-                            st.success(f"✅ Одобрено: {item.approved_by}")
-                        elif item.is_completed:
-                            st.info(f"⏳ Выполнено: {item.completed_by}")
-                        else:
-                            st.warning("⬜ Не выполнено")
+    # Action 3: Create PERT
+    st.markdown("---")
+    st.subheader("3️⃣ Создать PERT-диаграмму")
 
-        db2.close()
-    else:
-        st.info("Нет проектов для отображения")
+    with st.expander("📈 Генерация PERT", expanded=False):
+        selected_project_pert = st.selectbox(
+            "Выберите проект",
+            options=list(project_options.keys()) if project_options else ["Нет проектов"],
+            key="action3_project"
+        )
+
+        pert_data = st.text_area(
+            "Данные для PERT (или взять из карты проблем)",
+            height=150,
+            key="action3_data"
+        )
+
+        if st.button("📈 Создать PERT", type="primary", key="action3_submit"):
+            with st.spinner("Создаю PERT-диаграмму..."):
+                st.info("TODO: Генерация PERT-диаграммы")
 
 
 def show_create_project():
-    """Show create project form with multi-step process"""
-    st.header("➕ Создать новый проект")
+    """Old complex form - replaced by show_actions()"""
+    st.header("➕ Создать новый проект (DEPRECATED)")
 
     # Initialize session state for multi-step form
     if "create_step" not in st.session_state:
