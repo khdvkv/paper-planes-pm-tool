@@ -3,7 +3,7 @@ streamlit-authenticator==0.2.3
 anthropic==0.71.0
 google-api-python-client==2.108.0
 google-auth-oauthlib==1.2.0
-SQLAlchemy==2.0.23
+SQLAlchemy>=2.0.35
 python-dotenv==1.0.0
 PyYAML==6.0.3
 bcrypt==5.0.0
