@@ -430,13 +430,7 @@ sort by priority
         """
         ticker = project_data['project_code'].split(".")[1] if "." in project_data['project_code'] else "XXX"
 
-        # 1. Create Obsidian folder structure
-        project_folder = self.create_project_structure(
-            project_data['project_code'],
-            project_data['name']
-        )
-
-        # 2. Generate documents via AI
+        # 1. Generate documents via AI (required for GDrive sync)
         adminscale_content = self.generate_adminscale(
             project_data,
             extracted_data,
@@ -449,17 +443,43 @@ sort by priority
             claude_client
         )
 
-        # 3. Save files to Obsidian
-        files_created = self.save_project_files(
-            project_folder,
-            ticker,
-            project_data,
-            adminscale_content,
-            pert_content
-        )
+        # 2. Try to create Obsidian folder structure (optional for cloud deployment)
+        project_folder = None
+        files_created = {}
+
+        try:
+            project_folder = self.create_project_structure(
+                project_data['project_code'],
+                project_data['name']
+            )
+
+            # Save files to Obsidian
+            files_created = self.save_project_files(
+                project_folder,
+                ticker,
+                project_data,
+                adminscale_content,
+                pert_content
+            )
+        except (PermissionError, OSError) as e:
+            # Obsidian Vault not available (likely cloud deployment)
+            # Create temp files for GDrive upload
+            import tempfile
+            from pathlib import Path
+
+            temp_dir = Path(tempfile.mkdtemp(prefix=f"project_{ticker}_"))
+
+            # Save files to temp directory
+            files_created = self.save_project_files(
+                temp_dir,
+                ticker,
+                project_data,
+                adminscale_content,
+                pert_content
+            )
 
         result = {
-            'obsidian_path': str(project_folder),
+            'obsidian_path': str(project_folder) if project_folder else None,
             'files': files_created,
             'google_drive': None
         }

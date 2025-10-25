@@ -38,6 +38,8 @@ token.pickle
 
 # Generated files
 generate_passwords.py
+extract_token.py
+STREAMLIT_SECRETS.toml
 
 # Logs
 *.log
