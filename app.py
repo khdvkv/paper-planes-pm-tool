@@ -56,7 +56,7 @@ def load_auth_config():
                 'preauthorized': st.secrets.get('preauthorized', {'emails': []}).to_dict() if hasattr(st.secrets.get('preauthorized', {}), 'to_dict') else st.secrets.get('preauthorized', {'emails': []})
             }
             return config
-    except (ImportError, KeyError, AttributeError):
+    except (ImportError, KeyError, AttributeError, FileNotFoundError):
         pass
 
     # Fall back to config.yaml file
@@ -257,9 +257,91 @@ def show_actions():
                 st.error("Заполните название проекта и клиента")
             else:
                 with st.spinner("Создаю проект и генерирую админшкалу v1..."):
-                    # TODO: Implement simple project creation + adminscale generation
-                    st.success(f"✅ Проект '{project_name}' создан!")
-                    st.info("TODO: Генерация админшкалы v1")
+                    try:
+                        # Get database session
+                        db = get_db()
+
+                        # Generate project code
+                        claude_client = get_claude_client()
+
+                        # Get last project code from database
+                        last_project = db.query(Project).order_by(Project.project_code.desc()).first()
+                        last_code = last_project.project_code.split('.')[0] if last_project and last_project.project_code else "2167"
+
+                        code_result = claude_client.generate_project_code(client_name, last_code)
+                        project_code = code_result['project_code']
+
+                        # Create project record
+                        new_project = Project(
+                            project_code=project_code,
+                            name=project_name,
+                            client=client_name,
+                            start_date=start_date,
+                            end_date=end_date,
+                            prepayment_date=start_date,
+                            status='active',
+                            project_type='new',
+                            group='right',
+                            created_by=st.session_state.get('name', 'Unknown'),
+                            created_at=datetime.now()
+                        )
+
+                        db.add(new_project)
+                        db.flush()  # Get ID without committing
+
+                        # Extract contract text if PDF provided
+                        contract_text = None
+                        if contract_file:
+                            # For now, we'll just store the filename
+                            # TODO: Extract text from PDF using PyPDF2 or similar
+                            contract_text = f"[Файл договора: {contract_file.name}]"
+
+                        # Generate Adminscale v1
+                        adminscale_content = claude_client.generate_adminscale_v1(
+                            project_name=project_name,
+                            client_name=client_name,
+                            start_date=str(start_date),
+                            end_date=str(end_date),
+                            contract_text=contract_text,
+                            sales_notes=sales_notes if sales_notes else None
+                        )
+
+                        # Store adminscale in database as a document
+                        adminscale_doc = ProjectDocument(
+                            project_id=new_project.id,
+                            name="Админшкала v1",
+                            document_type="adminscale",
+                            content=adminscale_content,
+                            version="1.0",
+                            created_by=st.session_state.get('name', 'Unknown'),
+                            created_at=datetime.now()
+                        )
+                        db.add(adminscale_doc)
+
+                        # Commit transaction
+                        db.commit()
+
+                        st.success(f"✅ Проект '{project_name}' создан! (Код: {project_code})")
+
+                        # Display generated adminscale
+                        with st.expander("📄 Админшкала v1", expanded=True):
+                            st.markdown(adminscale_content)
+
+                            # Download button
+                            st.download_button(
+                                label="💾 Скачать Админшкалу",
+                                data=adminscale_content,
+                                file_name=f"Adminscale_v1_{project_code}.md",
+                                mime="text/markdown"
+                            )
+
+                        db.close()
+
+                    except Exception as e:
+                        st.error(f"❌ Ошибка: {str(e)}")
+                        if 'db' in locals():
+                            db.rollback()
+                            db.close()
 
     # Action 2: Session Processing
     st.markdown("---")

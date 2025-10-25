@@ -234,6 +234,162 @@ class ClaudeClient:
         except Exception as e:
             raise Exception(f"Error extracting contract data: {str(e)}")
 
+    def generate_adminscale_v1(self, project_name: str, client_name: str,
+                              start_date: str, end_date: str,
+                              contract_text: str = None, sales_notes: str = None) -> str:
+        """
+        Generate Adminscale v1 document
+
+        Args:
+            project_name: Name of the project
+            client_name: Client name
+            start_date: Project start date
+            end_date: Project end date
+            contract_text: Optional contract text
+            sales_notes: Optional sales meeting notes
+
+        Returns:
+            Markdown-formatted Adminscale document
+        """
+        context = ""
+        if contract_text:
+            context += f"\n**ТЕКСТ ДОГОВОРА:**\n{contract_text}\n"
+        if sales_notes:
+            context += f"\n**ГРАНУЛА ПРОДАЖ (ЗАПИСИ ВСТРЕЧ):**\n{sales_notes}\n"
+
+        prompt = f"""Ты — эксперт Paper Planes по созданию Админ-шкалы (Administrative Scale) для консалтинговых проектов.
+
+**ЗАДАЧА:** Создать Админшкалу v1 для нового проекта.
+
+**ДАННЫЕ ПРОЕКТА:**
+- Название проекта: {project_name}
+- Клиент: {client_name}
+- Дата старта: {start_date}
+- Дата окончания: {end_date}
+
+{context}
+
+**ЧТО ТАКОЕ АДМИН-ШКАЛА:**
+Админ-шкала (Administrative Scale) — это структурированный план проекта, который описывает:
+1. **Цели** (Goals) — что хотим достичь
+2. **Задачи** (Purposes) — для чего это нужно
+3. **Политики** (Policy) — правила и принципы работы
+4. **Планы** (Plans) — этапы и действия
+5. **Программы** (Programs) — конкретные мероприятия
+6. **Проекты** (Projects) — крупные инициативы
+7. **Приказы** (Orders) — конкретные поручения
+8. **Идеальная сцена** (Ideal Scene) — идеальный результат
+9. **Статистики** (Stats) — метрики успеха
+10. **Ценный конечный продукт** (Valuable Final Product) — главный результат
+
+**ИНСТРУКЦИЯ ПО ГЕНЕРАЦИИ:**
+1. Проанализируй данные проекта, договор (если есть) и гранулу продаж (если есть)
+2. Определи ключевые цели и задачи проекта
+3. Создай структурированную Админшкалу в формате Markdown
+4. Будь конкретным и практичным
+5. Используй данные из договора для определения deliverables и timeline
+
+**ФОРМАТ ОТВЕТА:**
+Верни Markdown-документ со следующей структурой:
+
+# Админ-шкала v1: [Название проекта]
+
+**Клиент:** {client_name}
+**Период:** {start_date} — {end_date}
+
+---
+
+## 1. Цели (Goals)
+
+[Опиши главные цели проекта — что мы хотим достичь для клиента]
+
+## 2. Задачи (Purposes)
+
+[Опиши, для чего нужен этот проект — какую бизнес-задачу решаем]
+
+## 3. Политики (Policy)
+
+[Перечисли ключевые принципы и правила работы над проектом]
+
+- Принцип 1
+- Принцип 2
+- ...
+
+## 4. Планы (Plans)
+
+[Опиши основные этапы проекта с timeline]
+
+### Этап 1: [Название]
+**Срок:** [даты]
+**Цель:** [описание]
+
+### Этап 2: [Название]
+**Срок:** [даты]
+**Цель:** [описание]
+
+## 5. Программы (Programs)
+
+[Опиши конкретные программы и мероприятия]
+
+- Программа 1: [описание]
+- Программа 2: [описание]
+
+## 6. Проекты (Projects)
+
+[Крупные инициативы в рамках проекта]
+
+## 7. Приказы (Orders)
+
+[Конкретные поручения команде]
+
+- [ ] Поручение 1
+- [ ] Поручение 2
+
+## 8. Идеальная сцена (Ideal Scene)
+
+[Опиши идеальный результат проекта — как будет выглядеть успех]
+
+## 9. Статистики (Stats)
+
+[Метрики для отслеживания прогресса]
+
+- Метрика 1: [описание]
+- Метрика 2: [описание]
+
+## 10. Ценный конечный продукт (VFP)
+
+[Главный результат проекта, который получит клиент]
+
+---
+
+**Дата создания:** {datetime.now().strftime("%Y-%m-%d")}
+**Версия:** 1.0
+**Статус:** Черновик
+
+Верни ТОЛЬКО Markdown-документ, без дополнительных комментариев."""
+
+        try:
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=4096,
+                temperature=0.7,
+                system="Ты — эксперт Paper Planes по созданию Админ-шкал для консалтинговых проектов. Создаёшь структурированные, практичные документы. Отвечай ТОЛЬКО Markdown-документом, без лишнего текста.",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+
+            # Extract Markdown from response
+            adminscale_content = message.content[0].text
+
+            return adminscale_content
+
+        except Exception as e:
+            raise Exception(f"Error generating adminscale: {str(e)}")
+
 
 # Singleton instance
 _claude_client = None
