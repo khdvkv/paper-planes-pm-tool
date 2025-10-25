@@ -31,6 +31,16 @@ class GoogleDriveClient:
             token_path: Path to token pickle file
             shared_drive_id: ID of Shared Drive (Team Drive) to use instead of personal drive
         """
+        # Try to load shared_drive_id from Streamlit Secrets first
+        if shared_drive_id is None:
+            try:
+                import streamlit as st
+                if hasattr(st, 'secrets') and 'GOOGLE_SHARED_DRIVE_ID' in st.secrets:
+                    shared_drive_id = st.secrets['GOOGLE_SHARED_DRIVE_ID']
+            except (ImportError, KeyError):
+                pass
+
+        # Fall back to environment variables
         if credentials_path is None:
             credentials_path = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
         if token_path is None:
@@ -47,6 +57,27 @@ class GoogleDriveClient:
     def _authenticate(self):
         """Authenticate with Google Drive API"""
         creds = None
+
+        # Try to load from Streamlit Secrets first (for cloud deployment)
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'google_oauth' in st.secrets:
+                secrets = st.secrets['google_oauth']
+                creds = Credentials(
+                    token=None,
+                    refresh_token=secrets['refresh_token'],
+                    token_uri='https://oauth2.googleapis.com/token',
+                    client_id=secrets['client_id'],
+                    client_secret=secrets['client_secret'],
+                    scopes=SCOPES
+                )
+                # Refresh to get access token
+                creds.refresh(Request())
+                self.service = build('drive', 'v3', credentials=creds)
+                return
+        except (ImportError, KeyError):
+            # Streamlit not available or secrets not configured, fall back to file-based auth
+            pass
 
         # Load token if exists
         if os.path.exists(self.token_path):

@@ -14,9 +14,21 @@ class ClaudeClient:
     """Client for interacting with Claude API"""
 
     def __init__(self):
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        # Try to load from Streamlit Secrets first (for cloud deployment)
+        api_key = None
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'ANTHROPIC_API_KEY' in st.secrets:
+                api_key = st.secrets['ANTHROPIC_API_KEY']
+        except (ImportError, KeyError):
+            pass
+
+        # Fall back to environment variable
         if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY not found in Streamlit secrets or environment variables")
 
         self.client = Anthropic(api_key=api_key)
         self.model = "claude-3-5-sonnet-20241022"
