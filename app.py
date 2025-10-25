@@ -125,10 +125,10 @@ def show_all_projects():
             "Окончание": proj.contract_project_end_date.strftime("%d.%m.%Y") if proj.contract_project_end_date else proj.end_date.strftime("%d.%m.%Y"),
             "Осталось дней": days_to_end if days_to_end is not None else None,
             "Недель": proj.duration_weeks or proj.phase_duration_weeks,
-            "📁 Папка": proj.google_drive_folder_url or "",
-            "📄 Админшкала": proj.adminscale_url or "",
-            "📊 PERT": proj.pert_url or "",
-            "🗺️ Карта проблем": proj.problem_map_url or "",
+            "📁 Папка": proj.google_drive_folder_url if proj.google_drive_folder_url else None,
+            "📄 Админшкала": proj.adminscale_url if proj.adminscale_url else None,
+            "📊 PERT": proj.pert_url if proj.pert_url else None,
+            "🗺️ Карта проблем": proj.problem_map_url if proj.problem_map_url else None,
             "_project_id": proj.id  # Hidden column for selection
         })
 
