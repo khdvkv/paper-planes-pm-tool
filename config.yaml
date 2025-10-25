@@ -10,7 +10,7 @@ credentials:
       password: $2b$12$SrENQkDTfftfIhDGGHeIyeCtSpxfRrwtJ30LjDB0sciXLr6EV4UJ6  # paperplanes2025
     khudovekov:
       email: khudovekov@paper-planes.ru
-      name: Кудовеков Сергей
+      name: Худовеков Сергей
       password: $2b$12$l0Y2djvEMkKS52IyG3abFOiiq0ctr29AvzOXNu8JXhZ.MUgRWxdNi  # shikari7
     georgiy:
       email: georgiy@paperplanes.ru
