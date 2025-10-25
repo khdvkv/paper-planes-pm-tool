@@ -30,21 +30,29 @@ def run_migrations():
     """Run database migrations - add missing columns to existing tables"""
     # Only run migrations for SQLite databases
     if "sqlite" not in DATABASE_URL:
-        print("⏭️  Skipping migrations (non-SQLite database)")
         return
 
     # Extract database path from URL
     db_path = DATABASE_URL.replace("sqlite:///", "").replace("./", "")
 
+    # Ensure absolute path
+    if not os.path.isabs(db_path):
+        db_path = os.path.abspath(db_path)
+
     # Check if database file exists
     if not os.path.exists(db_path):
-        print("⏭️  Skipping migrations (database doesn't exist yet)")
         return
-
-    print("🔄 Running database migrations...")
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
+    # Check if projects table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
+    if not cursor.fetchone():
+        conn.close()
+        return
+
+    print("🔄 Running database migrations...")
 
     # Registry fields migration - Add new columns to projects table
     registry_columns = [
@@ -112,3 +120,8 @@ def drop_all_tables():
     """Drop all tables - use with caution!"""
     Base.metadata.drop_all(bind=engine)
     print("⚠️ All tables dropped!")
+
+
+# Run migrations immediately when module is imported
+# This ensures existing databases get updated before any queries happen
+run_migrations()
