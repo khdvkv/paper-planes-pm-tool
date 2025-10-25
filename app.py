@@ -228,6 +228,77 @@ def show_all_projects():
         }
     )
 
+    # Setup Checklist section for all projects
+    st.markdown("---")
+    st.header("🎯 Setup Checklist - Карточки проектов")
+    st.caption("Обязательные действия ДО открывающей сессии")
+
+    # Get filtered project IDs
+    if len(df_filtered) > 0:
+        filtered_project_ids = df_filtered["_project_id"].tolist()
+
+        # Get checklist items for filtered projects
+        db2 = get_db()
+        for project_id in filtered_project_ids:
+            project = db2.query(Project).filter(Project.id == project_id).first()
+            if not project:
+                continue
+
+            # Get checklist items
+            checklist_items = db2.query(SetupChecklistItem).filter(
+                SetupChecklistItem.project_id == project_id
+            ).order_by(SetupChecklistItem.item_number).all()
+
+            # Calculate progress
+            total_items = len(checklist_items)
+            completed = sum(1 for item in checklist_items if item.is_completed)
+            approved = sum(1 for item in checklist_items if item.is_approved)
+
+            # Project card
+            with st.expander(f"📋 {project.project_code} - {project.name} ({completed}/{total_items} выполнено, {approved}/{total_items} одобрено)", expanded=False):
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+                    st.write(f"**Клиент:** {project.client}")
+                    st.write(f"**Статус:** {project.status}")
+                    st.write(f"**Группа:** {'🟢 Правая' if project.group == 'right' else '🔵 Левая'}")
+
+                with col2:
+                    # Progress bar
+                    progress = completed / total_items if total_items > 0 else 0
+                    st.progress(progress, text=f"{int(progress*100)}% выполнено")
+
+                    approval_progress = approved / total_items if total_items > 0 else 0
+                    st.progress(approval_progress, text=f"{int(approval_progress*100)}% одобрено")
+
+                st.markdown("---")
+
+                # Checklist items
+                for item in checklist_items:
+                    col_check, col_title, col_status = st.columns([1, 6, 3])
+
+                    with col_check:
+                        st.write(f"**{item.item_number}.**")
+
+                    with col_title:
+                        st.write(f"**{item.title}**")
+                        if item.description:
+                            st.caption(item.description)
+                        if item.proof_url:
+                            st.markdown(f"🔗 [Подтверждение]({item.proof_url})")
+
+                    with col_status:
+                        if item.is_approved:
+                            st.success(f"✅ Одобрено: {item.approved_by}")
+                        elif item.is_completed:
+                            st.info(f"⏳ Выполнено: {item.completed_by}")
+                        else:
+                            st.warning("⬜ Не выполнено")
+
+        db2.close()
+    else:
+        st.info("Нет проектов для отображения")
+
 
 def show_create_project():
     """Show create project form with multi-step process"""
