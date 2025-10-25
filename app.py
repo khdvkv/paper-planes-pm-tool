@@ -38,6 +38,28 @@ def initialize_database():
 @st.cache_resource
 def load_auth_config():
     """Load authentication configuration"""
+    # Try to load from Streamlit Secrets first (for cloud deployment)
+    try:
+        if hasattr(st, 'secrets') and 'credentials' in st.secrets:
+            # Convert st.secrets to dict format expected by streamlit-authenticator
+            config = {
+                'credentials': st.secrets['credentials'].to_dict(),
+                'cookie': st.secrets.get('cookie', {
+                    'expiry_days': 30,
+                    'key': 'paperplanes_auth_key',
+                    'name': 'paperplanes_auth_cookie'
+                }).to_dict() if hasattr(st.secrets.get('cookie', {}), 'to_dict') else st.secrets.get('cookie', {
+                    'expiry_days': 30,
+                    'key': 'paperplanes_auth_key',
+                    'name': 'paperplanes_auth_cookie'
+                }),
+                'preauthorized': st.secrets.get('preauthorized', {'emails': []}).to_dict() if hasattr(st.secrets.get('preauthorized', {}), 'to_dict') else st.secrets.get('preauthorized', {'emails': []})
+            }
+            return config
+    except (ImportError, KeyError, AttributeError):
+        pass
+
+    # Fall back to config.yaml file
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=yaml.SafeLoader)
     return config
