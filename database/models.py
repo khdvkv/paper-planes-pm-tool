@@ -47,6 +47,26 @@ class Project(Base):
     google_drive_folder_url = Column(Text)
     obsidian_path = Column(String(500))
 
+    # Document links (from registry)
+    contract_appendix_url = Column(Text)  # Ссылка на Приложение к договору
+    problem_map_url = Column(Text)  # Ссылка на Карту проблем
+    adminscale_url = Column(Text)  # Ссылка на Админшкалу
+    pert_url = Column(Text)  # Ссылка на PERT-диаграмму
+
+    # Project timeline (from registry)
+    ideal_phase_end_date = Column(Date)  # Идеальная дата окончания этапа
+    phase_duration_weeks = Column(Integer)  # Кол-во недель этап
+    contract_phase_end_date = Column(Date)  # Дата окончания по договору (этапа)
+    ideal_project_end_date = Column(Date)  # Идеальная дата окончания проекта
+    contract_project_end_date = Column(Date)  # Дата окончания по договору (проекта)
+
+    # Buffers (from registry, calculated)
+    days_to_real_phase_end = Column(Integer)  # Дней до реального конца этапа
+    days_to_ideal_phase_end = Column(Integer)  # Дней до идеального конца этапа
+    days_to_phase_end_no_buffer = Column(Integer)  # Дней до конца времени этапа без буфера
+    phase_buffer_days = Column(Integer)  # Буфер этапа от идеальной до предельной
+    project_buffer_days = Column(Integer)  # Буфер проекта от идеальной до предельной
+
     # Metadata
     created_by = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -94,7 +94,7 @@ def main():
 
 
 def show_all_projects():
-    """Show all projects table"""
+    """Show all projects table with extended registry information"""
     st.header("📊 Все проекты")
 
     # Get projects from database
@@ -106,52 +106,124 @@ def show_all_projects():
         st.info("📭 Пока нет проектов. Создайте первый проект!")
         return
 
-    # Convert to DataFrame
+    # Convert to DataFrame with extended columns
     data = []
     for proj in projects:
+        # Calculate days remaining if dates available
+        days_to_end = None
+        if proj.contract_project_end_date:
+            from datetime import date
+            days_to_end = (proj.contract_project_end_date - date.today()).days
+
         data.append({
-            "Project Code": proj.project_code,
+            "Код": proj.project_code,
             "Название": proj.name,
             "Клиент": proj.client,
-            "Старт": proj.start_date.strftime("%d.%m.%Y"),
-            "Окончание": proj.end_date.strftime("%d.%m.%Y"),
+            "Группа": "🟢 Правая" if proj.group == "right" else "🔵 Левая",
             "Статус": proj.status,
-            "Создан": proj.created_at.strftime("%d.%m.%Y %H:%M")
+            "Старт": proj.start_date.strftime("%d.%m.%Y") if proj.start_date else "",
+            "Окончание": proj.contract_project_end_date.strftime("%d.%m.%Y") if proj.contract_project_end_date else proj.end_date.strftime("%d.%m.%Y"),
+            "Осталось дней": days_to_end if days_to_end is not None else None,
+            "Недель": proj.duration_weeks or proj.phase_duration_weeks,
+            "📁 Папка": proj.google_drive_folder_url or "",
+            "📄 Админшкала": proj.adminscale_url or "",
+            "📊 PERT": proj.pert_url or "",
+            "🗺️ Карта проблем": proj.problem_map_url or "",
+            "_project_id": proj.id  # Hidden column for selection
         })
 
     df = pd.DataFrame(data)
 
     # Filters
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         search = st.text_input("🔍 Поиск по названию или клиенту")
     with col2:
         status_filter = st.multiselect(
             "Статус",
-            ["draft", "active", "completed", "archived"],
-            default=["draft", "active"]
+            ["draft", "setup", "active", "completed", "archived"],
+            default=["setup", "active"]
         )
     with col3:
+        group_filter = st.multiselect(
+            "Группа",
+            ["🟢 Правая", "🔵 Левая"],
+            default=["🟢 Правая", "🔵 Левая"]
+        )
+    with col4:
         st.metric("Всего проектов", len(projects))
 
     # Apply filters
+    df_filtered = df.copy()
     if search:
-        df = df[
-            df["Название"].str.contains(search, case=False) |
-            df["Клиент"].str.contains(search, case=False)
+        df_filtered = df_filtered[
+            df_filtered["Название"].str.contains(search, case=False, na=False) |
+            df_filtered["Клиент"].str.contains(search, case=False, na=False)
         ]
     if status_filter:
-        df = df[df["Статус"].isin(status_filter)]
+        df_filtered = df_filtered[df_filtered["Статус"].isin(status_filter)]
+    if group_filter:
+        df_filtered = df_filtered[df_filtered["Группа"].isin(group_filter)]
 
-    # Display table
+    st.caption(f"Показано проектов: {len(df_filtered)} из {len(df)}")
+
+    # Display table with links
     st.dataframe(
-        df,
+        df_filtered.drop(columns=["_project_id"]),
         use_container_width=True,
         hide_index=True,
         column_config={
+            "Код": st.column_config.TextColumn(
+                "Код проекта",
+                width="medium",
+                help="Уникальный код проекта"
+            ),
+            "Название": st.column_config.TextColumn(
+                "Название",
+                width="large"
+            ),
+            "Группа": st.column_config.TextColumn(
+                "Группа",
+                width="small"
+            ),
             "Статус": st.column_config.TextColumn(
                 "Статус",
-                help="Статус проекта"
+                width="small",
+                help="Текущий статус проекта"
+            ),
+            "Осталось дней": st.column_config.NumberColumn(
+                "Дней до конца",
+                width="small",
+                help="Дней до договорной даты окончания"
+            ),
+            "Недель": st.column_config.NumberColumn(
+                "Недель",
+                width="small",
+                help="Длительность проекта в неделях"
+            ),
+            "📁 Папка": st.column_config.LinkColumn(
+                "📁 Папка",
+                width="small",
+                help="Ссылка на папку в Google Drive",
+                display_text="Открыть"
+            ),
+            "📄 Админшкала": st.column_config.LinkColumn(
+                "📄 Админшкала",
+                width="small",
+                help="Ссылка на админшкалу проекта",
+                display_text="Открыть"
+            ),
+            "📊 PERT": st.column_config.LinkColumn(
+                "📊 PERT",
+                width="small",
+                help="Ссылка на PERT-диаграмму",
+                display_text="Открыть"
+            ),
+            "🗺️ Карта проблем": st.column_config.LinkColumn(
+                "🗺️ Карта",
+                width="small",
+                help="Ссылка на карту проблем",
+                display_text="Открыть"
             )
         }
     )
@@ -909,7 +981,7 @@ def show_step4_review_create():
 
 def show_statistics():
     """Show statistics dashboard"""
-    st.header("📈 Статистика")
+    st.header("📈 Статистика и Администрирование")
 
     db = get_db()
 
@@ -933,7 +1005,86 @@ def show_statistics():
     with col4:
         st.metric("Завершено", completed_count, help="Завершенные проекты")
 
+    st.divider()
+
+    # Excel Import Section
+    st.subheader("📥 Импорт проектов из Excel")
+
+    with st.expander("Импорт существующих проектов из реестра"):
+        st.markdown("""
+        Загрузите существующий реестр проектов из Excel файла для массового импорта.
+
+        **Формат файла:**
+        - Лист должен содержать колонки: Название, Ссылка на папку, Дата старта, и т.д.
+        - Поддерживается файл формата `B2c. Формуляр.xlsx` с листом ` Буферы и ссылки на все`
+        """)
+
+        # File upload
+        uploaded_file = st.file_uploader(
+            "Выберите Excel файл",
+            type=["xlsx", "xls"],
+            help="Загрузите файл реестра проектов"
+        )
+
+        # Group selection for import
+        import_group = st.selectbox(
+            "Группа для импортируемых проектов",
+            options=["right", "left"],
+            format_func=lambda x: "Правая группа" if x == "right" else "Левая группа",
+            help="Все проекты будут импортированы в выбранную группу"
+        )
+
+        if uploaded_file:
+            # Save uploaded file temporarily
+            import tempfile
+            import os
+            from api.excel_import import preview_excel_import, import_projects_from_excel
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                tmp_file.write(uploaded_file.getvalue())
+                tmp_path = tmp_file.name
+
+            try:
+                # Preview data
+                st.info("📋 Предпросмотр данных из файла:")
+                preview_df = preview_excel_import(tmp_path)
+                st.dataframe(preview_df.head(10), use_container_width=True)
+                st.caption(f"Всего проектов к импорту: {len(preview_df)}")
+
+                # Import button
+                if st.button("✅ Импортировать проекты", type="primary"):
+                    with st.spinner("Импортируем проекты..."):
+                        db = get_db()
+                        stats = import_projects_from_excel(
+                            tmp_path,
+                            sheet_name=' Буферы и ссылки на все',
+                            db_session=db,
+                            default_group=import_group
+                        )
+                        db.close()
+
+                    # Show results
+                    st.success(f"✅ Импортировано проектов: {stats['imported']}")
+                    if stats['skipped'] > 0:
+                        st.warning(f"⏭️ Пропущено проектов: {stats['skipped']}")
+
+                    if stats['errors']:
+                        with st.expander("⚠️ Ошибки импорта"):
+                            for error in stats['errors']:
+                                st.error(error)
+
+                    if stats['imported'] > 0:
+                        st.info("👉 Перейдите на страницу 'Все проекты' чтобы увидеть импортированные проекты")
+
+            except Exception as e:
+                st.error(f"Ошибка при чтении файла: {str(e)}")
+            finally:
+                # Clean up temp file
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+
     # Charts will be added in future versions
+    st.divider()
     st.info("📊 Графики и детальная аналитика будут добавлены в следующих версиях")
 
 
