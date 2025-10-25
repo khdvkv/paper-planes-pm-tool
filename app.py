@@ -811,8 +811,6 @@ def show_step4_review_create():
                         )
                         db.add(checklist_item)
 
-                    db.commit()
-
                     # Generate project structure and documents with GDrive sync
                     with st.spinner("🎨 Генерирую админшкалу и PERT..."):
                         try:
@@ -841,11 +839,15 @@ def show_step4_review_create():
                                 new_project.google_drive_folder_id = result['google_drive']['folder_id']
                                 new_project.google_drive_folder_url = result['google_drive']['folder_url']
 
-                            db.commit()
-
                         except Exception as e:
                             st.warning(f"⚠️ Проект создан в БД, но не удалось сгенерировать документы: {str(e)}")
                             result = None
+
+                    # Single commit after all operations
+                    db.commit()
+
+                    # Refresh object to access attributes after commit
+                    db.refresh(new_project)
 
                     db.close()
 
